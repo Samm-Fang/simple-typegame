@@ -397,7 +397,8 @@
 { "word": "broad", "pos": "a.", "definition": "宽阔的,广泛的" }
 
 
-broadcast v/ n.广播,播撒，播音
+{ "word": "broadcast", "pos": "v.", "definition": "广播,播撒，播音" }
+
 
 { "word": "broom", "pos": "n.", "definition": "扫帚" }
 
@@ -405,12 +406,13 @@ broadcast v/ n.广播,播撒，播音
 { "word": "bucket", "pos": "n.", "definition": "水桶,吊桶" }
 
 
-budget v/n.预算
+{ "word": "budget", "pos": "v.", "definition": "预算" }
+
 
 { "word": "burden", "pos": "n.", "definition": "负担,责任，装载量 vt.使负担，装货于" }
 
 
-burst v/n.爆发，突发，爆炸
+{ "word": "burst", "pos": "v.", "definition": "爆发，突发，爆炸" }
 
 { "word": "bury", "pos": "vt.", "definition": "埋葬,埋藏" }
 
@@ -423,8 +425,6 @@ burst v/n.爆发，突发，爆炸
 
 { "word": "button", "pos": "n.", "definition": "扣子,按钮 vt.扣紧" }
 
-
-café n.咖啡馆,小餐厅
 
 { "word": "cage", "pos": "n.", "definition": "笼,鸟笼,囚笼" }
 
@@ -480,7 +480,8 @@ café n.咖啡馆,小餐厅
 { "word": "chain", "pos": "n.", "definition": "链,链条,项圈" }
 
 
-challenge v/n.挑战
+{ "word": "challenge", "pos": "v.", "definition": "挑战" }
+
 
 { "word": "champion", "pos": "n.", "definition": "冠军,拥护者 vt.支持，拥护" }
 
@@ -1343,8 +1344,6 @@ challenge v/n.挑战
 { "word": "harbour", "pos": "n.", "definition": "港" }
 
 
-hard-working adj. 勤劳
-
 { "word": "hardship", "pos": "n.", "definition": "艰难,困苦" }
 
 
@@ -1572,8 +1571,6 @@ hard-working adj. 勤劳
 
 { "word": "litre", "pos": "n.", "definition": "公升" }
 
-
-living-room n.起居室
 
 { "word": "load", "pos": "vt.", "definition": "装,装满 n.负载;负担" }
 
@@ -1923,7 +1920,8 @@ living-room n.起居室
 { "word": "partner", "pos": "n.", "definition": "伙伴,搭挡，合伙人;配偶" }
 
 
-passer-by n. 过路人
+{ "word": "passer-by", "pos": "n.", "definition": "过路人" }
+
 
 { "word": "passive", "pos": "a.", "definition": "被动的,消极的" }
 
@@ -2504,8 +2502,6 @@ passer-by n. 过路人
 { "word": "spoken", "pos": "a.", "definition": "口头讲的,口语的" }
 
 
-speak 的过去分词
-
 { "word": "sponsor", "pos": "n.", "definition": "发起者 vt.发起" }
 
 
@@ -2881,7 +2877,8 @@ speak 的过去分词
 { "word": "web", "pos": "n.", "definition": "(蜘蛛)网，网状物；网络" }
 
 
-website WWW(环球网)的站点
+{ "word": "website", "pos": "n.", "definition": "WWW(环球网)的站点" }
+
 
 { "word": "wedding", "pos": "n.", "definition": "婚礼" }
 
@@ -2889,7 +2886,8 @@ website WWW(环球网)的站点
 { "word": "weed", "pos": "n.", "definition": "杂草，野草 vi.除草" }
 
 
-well-known a.众所周知的
+{ "word": "well-known", "pos": "a.", "definition": "众所周知的" }
+
 
 { "word": "whisper", "pos": "vt.", "definition": "低声地讲 vi.低语 n.语，私语" }
 
