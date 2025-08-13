@@ -1,0 +1,188 @@
+:root{
+	--bg:#0e1422;
+	--panel:#0f172a;
+	--text:#e6e9ef;
+	--muted:#9aa4b2;
+	--mono:#cfe1ff;
+	--primary:#7aa2ff;
+	--accent:#2dd4bf;
+	--glass:rgba(255,255,255,.06);
+	--border:#223055;
+}
+*{box-sizing:border-box}
+html,body,#app{height:100%}
+body{margin:0;background:radial-gradient(1400px 900px at 20% -10%, #172036 0%, var(--bg) 55%);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","WenQuanYi Micro Hei","Noto Sans CJK SC",sans-serif;}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid var(--border);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{font-size:26px}
+.title h1{margin:0;font-size:18px}
+.title p{margin:0;color:var(--muted);font-size:12px}
+.actions{display:flex;align-items:center;gap:10px}
+.file{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
+.file input{display:none}
+.toggle{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.btn{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 14px;cursor:pointer; transition: all .2s ease-in-out;}
+.btn:hover{transform: scale(1.05);}
+.btn:active{transform: scale(0.95);}
+.btn.primary{background:linear-gradient(180deg, rgba(122,162,255,.25), rgba(122,162,255,.1));border-color:#3b5ccc}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+
+.status{display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));}
+.chip{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--glass);border:1px solid var(--border)}
+.chip>span{color:var(--muted);font-size:12px}
+.chip.grow{flex:1}
+
+.streak-glow {
+	animation: streak-glow .5s ease-in-out;
+}
+
+@keyframes streak-glow {
+	0% {
+		color: var(--text);
+		text-shadow: none;
+		transform: scale(1);
+	}
+	50% {
+		color: var(--accent);
+		text-shadow: 0 0 20px var(--accent), 0 0 30px var(--accent); /* 增强光晕效果 */
+		transform: scale(1.1); /* 增加缩放效果 */
+	}
+	100% {
+		color: var(--text);
+		text-shadow: none;
+		transform: scale(1);
+	}
+}
+
+.stage{position:relative;height:calc(100% - 148px)}
+.bg{position:absolute;inset:0}
+.bg::before{content:"";position:absolute;inset:0;opacity:.23;pointer-events:none;background-image:linear-gradient(to right, rgba(148,163,184,.12) 1px, transparent 1px),linear-gradient(to bottom, rgba(148,163,184,.08) 1px, transparent 1px);background-size:24px 24px;}
+
+/* DIAL */
+.dial{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.dial-track{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(1400px, 94vw);height:420px}
+.dial-item{position:absolute;left:50%;top:90px;transform-origin:50% 210px;display:flex;flex-direction:column;align-items:center;gap:6px;will-change:transform,opacity;transition:transform .3s cubic-bezier(.25,.1,.25,1), opacity .3s ease;backface-visibility:hidden}
+.dial-word{padding:8px 14px;border-radius:14px;background:rgba(12,16,28,.6);border:1px solid rgba(148,163,184,.2);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--mono);font-weight:700;letter-spacing:.5px;transition: all .2s ease-in-out;}
+.dial-word.storm{color: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px var(--accent);}
+.dial-trans{font-size:12px;color:#9fb2cc;transition: all .2s ease-in-out;}
+.dial-dot{width:9px;height:9px;background:rgba(148,163,184,.35);border-radius:999px}
+.dial-item.center{z-index:5}
+.dial-item.center .dial-word{background:rgba(255,255,255,.14);border-color:#5e86ff;color:#fff;font-size:28px}
+.dial-item.center .dial-word.boss{color: #ff5e5e; border-color: #ff5e5e; box-shadow: 0 0 20px #ff5e5e; animation: pulse 1s infinite;}
+
+@keyframes pulse {
+	0% { transform: scale(1); }
+	50% { transform: scale(1.05); }
+	100% { transform: scale(1); }
+}
+.dial-item.center .dial-trans{color:#d5e2ff;font-size:14px}
+
+.focus{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
+.focus-word{font-size:36px;font-weight:800;color:#fff;letter-spacing:1px;transition: filter .2s ease-in-out;}
+.focus-word.blurred{filter:blur(6px)}
+.focus-trans{color:#cfe1ff}
+.inputline{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.inputline .mono.blurred{filter:blur(6px)} /* 为模糊挑战添加 */
+.inputline .mono{color:#fff}
+
+/* focus buffer highlight */
+.inputline .mono{color:#fff}
+.inputline .ok{color:#86efac; animation: pop .2s ease-in-out;}
+
+@keyframes pop {
+	0% { transform: scale(1); }
+	50% { transform: scale(1.2); }
+	100% { transform: scale(1); }
+}
+.inputline .bad{color:#ff8b8b}
+.inputline .rest{color:#a9b7d1}
+
+.autocomplete{
+	position: absolute;
+	top: 0;
+	left: 100%;
+    margin-left: 20px;
+	width: 200px;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 4px;
+	display: none; /* Hide by default */
+	flex-direction: column;
+	gap: 4px;
+	z-index: 10;
+}
+
+.autocomplete-item{
+	padding: 4px 8px;
+	border-radius: 4px;
+	cursor: pointer;
+}
+.autocomplete-item.selected{
+	background: var(--primary);
+	color: #fff;
+}
+
+/* shake on error */
+@keyframes shakeX{0%{transform:translateX(-50%) translateY(0)}20%{transform:translateX(calc(-50% - 6px))}40%{transform:translateX(calc(-50% + 5px))}60%{transform:translateX(calc(-50% - 3px))}80%{transform:translateX(calc(-50% + 2px))}100%{transform:translateX(-50%)}}
+.focus.shake{animation:shakeX .28s ease}
+
+/* event active effect */
+.event-active-effect {
+    animation: event-flash 1s ease-out forwards;
+}
+
+@keyframes event-flash {
+    0% {
+        box-shadow: inset 0 0 0 0px var(--accent);
+    }
+    50% {
+        box-shadow: inset 0 0 0 50vw rgba(45, 212, 191, 0.1); /* 扩散光晕，范围减小，透明度降低 */
+    }
+    100% {
+        box-shadow: inset 0 0 0 0px var(--accent);
+    }
+}
+
+/* overlay */
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,14,22,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.panel{width:min(780px, 92vw);border-radius:16px;border:1px solid var(--border);padding:20px;background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); animation: panel-in .3s ease-in-out;}
+
+@keyframes panel-in {
+	from {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+.panel h2{margin:0 0 8px 0}
+.panel p{margin:0 0 14px 0;color:var(--muted)}
+.import .drop{border:1px dashed #4560a5;border-radius:12px;padding:16px;text-align:center;color:#a7b7d8;background:rgba(12,16,28,.6)}
+.import .hint{margin-top:10px;color:#9fb2cc}
+.import .btns{margin-top:10px}
+
+/* toasts */
+.toasts{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:rgba(12,16,28,.85);border:1px solid #365089;color:#e6f1ff;padding:10px 14px;border-radius:12px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+
+.footer{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--border);color:#97a8c5;background:linear-gradient(0deg, rgba(255,255,255,.04), rgba(255,255,255,.02))}
+
+/* light mode */
+:root.light{--bg:#f7f9fc;--panel:#ffffff;--text:#0b1220;--muted:#465165;--mono:#304673;--glass:rgba(255,255,255,.75);--border:#e3eaf6}
+:root.light body{background:radial-gradient(1400px 900px at 20% -10%, #e9f0fb 0%, var(--bg) 55%)}
+:root.light .dial-word{background:#fff;border-color:#e3eaf6;color:#304673}
+:root.light .dial-item.center .dial-word{background:#f4f7ff;border-color:#b7c8ff;color:#1c2745}
+:root.light .focus-word{color:#1c2745}
+:root.light .inputline .mono{color:#1c2745}
+
+/* responsive */
+@media (max-width:900px){
+	.dial-track{height:340px}
+	.dial-item.center .dial-word{font-size:24px}
+	.focus-word{font-size:30px}
+}

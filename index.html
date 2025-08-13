@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TypeGame · 高考核心词汇</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div class="brand">
+        <div class="title">
+          <h1>TypeGame</h1>
+          <p>顺序输入 · Roguelike 成长</p>
+        </div>
+      </div>
+      <div class="actions">
+        <label class="file">
+          <input id="mdFile" type="file" accept="application/json,.json,text/markdown,.md">
+          <span>导入词库</span>
+        </label>
+        <label class="toggle"><input id="soundToggle" type="checkbox" checked><span>音效</span></label>
+        <label class="toggle"><input id="darkToggle" type="checkbox" checked><span>暗色</span></label>
+        <button id="startBtn" class="btn primary">开始</button>
+        <button id="resetBtn" class="btn" disabled>重置</button>
+      </div>
+    </header>
+
+    <section class="status">
+      <div class="chip"><span>进度</span><strong id="progress">0/0</strong></div>
+      <div class="chip"><span>WPM</span><strong id="wpm">0</strong></div>
+      <div class="chip"><span>准确率</span><strong id="accuracy">100%</strong></div>
+      <div class="chip"><span>连击</span><strong id="streak">0x</strong></div>
+      <div class="chip grow" id="wordSourceStatus">未加载词库（建议：985高考核心词汇.json）</div>
+     </section>
+   
+     <main class="stage">
+      <div class="bg"></div>
+      <section id="dial" class="dial">
+      	<div id="dialTrack" class="dial-track"></div>
+      	<div class="focus">
+      		<div id="focusWord" class="focus-word mono"></div>
+      		<div id="focusTrans" class="focus-trans"></div>
+      		<div class="inputline"><span>输入</span><span id="currentBuffer" class="mono"></span></div>
+      		<div id="autocomplete" class="autocomplete"></div>
+      	</div>
+      </section>
+      <input id="hiddenInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" />
+   
+      <div id="overlay" class="overlay" style="display: none;">
+      	<div class="panel">
+      		<h2>准备开始</h2>
+      		<p>将 JSON 词库拖入或点击导入。玩法：按顺序输入单词，无时间限制。每完成一阶段可选择一次升级（自动补全、容错等）。</p>
+      		<div class="import">
+      			<div class="drop" id="mdDropZone">拖放 JSON 文件到这里</div>
+      			<div class="hint"><span id="mdStatusText">将尝试自动加载默认词库</span></div>
+      			<div class="btns">
+      				<button id="retryMdBtn" class="btn">重新加载默认</button>
+      			</div>
+      		</div>
+      	</div>
+      </div>
+
+      <div id="toastContainer" class="toasts"></div>
+    </main>
+
+    <footer class="footer">
+      <div class="tips">Enter 开始 · Backspace 退格 · Tab（需升级）自动补全</div>
+      <div class="credit">前端纯静态 · IDE 风格 · 本地存储进度</div>
+    </footer>
+  </div>
+  <script src="./main.js"></script>
+</body>
+</html> 
