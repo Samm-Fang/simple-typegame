@@ -186,3 +186,44 @@ body{margin:0;background:radial-gradient(1400px 900px at 20% -10%, #172036 0%, v
 	.dial-item.center .dial-word{font-size:24px}
 	.focus-word{font-size:30px}
 }
+
+@media (max-width: 600px) {
+	.app-header {
+		padding: 10px;
+		gap: 10px;
+	}
+	.title p {
+		display: none;
+	}
+	.status {
+		flex-wrap: wrap;
+		padding: 8px;
+		gap: 8px;
+	}
+	.chip {
+		padding: 6px 8px;
+	}
+	.dial-track {
+		height: 280px;
+	}
+	.dial-item.center .dial-word {
+		font-size: 20px;
+	}
+	.focus-word {
+		font-size: 26px;
+	}
+	.focus {
+		bottom: 40px;
+	}
+	.footer .credit {
+		display: none;
+	}
+}
+
+#hiddenInput {
+	   position: absolute;
+	   top: -9999px;
+	   left: -9999px;
+	   opacity: 0;
+	   pointer-events: none;
+}
