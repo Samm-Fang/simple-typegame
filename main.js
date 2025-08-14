@@ -331,21 +331,18 @@
 	// Game core (unchanged except calling buildDial)
 	const game=(function(){
 		const state={ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,autoCompletePro:false,lenientCase:false,mistakeShield:0,mistakeShieldPro:false,hintAlways:false,hintCorrection:false,bonusCombo:false,bonusComboPro:false,slowMotion:false,slowMotionPro:false,doubleVision:false,xrayVision:false,wordSkip:false,freeSkip:false,spellCorrection:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} };
-		function reset(){
+		function reset(){ 
 			if (state.timerInterval) clearInterval(state.timerInterval);
-			Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} });
-			overlay.style.display='flex';
-			resetBtn.disabled=sequence.length===0;
-			startBtn.disabled=sequence.length===0;
-			currentBufferEl.textContent='';
-			updateAutocomplete();
-			timerEl.textContent = '00:00';
+			Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} }); 
+			overlay.style.display='flex'; 
+			resetBtn.disabled=sequence.length===0; 
+			startBtn.disabled=sequence.length===0; 
+			currentBufferEl.textContent=''; 
+			updateAutocomplete(); 
+			timerEl.textContent = '00:00'; 
 		}
 		function start(){ if(sequence.length===0) {showToast('请导入词库'); return;} state.running=true; state.startedAt=now(); overlay.style.display='none'; resetBtn.disabled=false; startBtn.disabled=true; hiddenInput.focus(); try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(_){} buildDial(); updateHUD(); state.timerInterval = setInterval(updateTimer, 1000); }
 		function item(){
-			if (state.isBoss) {
-				return bossWords.find(b => sequence[state.index] && b.word === sequence[state.index].word) || sequence[state.index] || null;
-			}
 			const originalItem = sequence[state.index]||null;
 			if (!originalItem) return null;
 
@@ -433,15 +430,15 @@
 						game.state.upgrades.mistakeShield += 1; // 获得一个护盾
 						showToast('连击爆发！获得一个失误护盾！');
 					}
-					if(state.index % 50 === 0 && state.index > 0) {
+					if(state.index % 50 === 0 && state.index > 0) { 
 						let boss = bossWords[Math.floor(Math.random() * bossWords.length)];
 						if (game.state.upgrades.demonContract) {
 							boss.word += boss.word; // Double health
 							game.state.upgrades.demonContract = false; // One time use
 						}
-						sequence.splice(state.index, 0, boss);
-						state.isBoss = true;
-						showToast('头目出现！');
+						sequence.splice(state.index, 0, boss); 
+						state.isBoss = true; 
+						showToast('头目出现！'); 
 					}
 					if(state.index % 10 === 0) triggerRandomEvent();
 					handleBankInterest();
@@ -749,12 +746,14 @@
 			e.preventDefault();
 			return;
 		}
-		if(e.shiftKey && e.key.length===1 && /[a-zA-Z\-']/.test(e.key)) {
-			handleFallingWordInput(e.key);
+		if(e.key.length===1 && /[a-zA-Z\-']/.test(e.key)){
+			if (e.key >= 'A' && e.key <= 'Z') {
+				handleFallingWordInput(e.key.toLowerCase());
+			} else {
+				game.type(e.key);
+			}
 			e.preventDefault();
-			return;
 		}
-		if(e.key.length===1 && /[a-zA-Z\-']/.test(e.key)){ game.type(e.key); e.preventDefault(); }
 	},{passive:false});
 
 	// Button listeners
@@ -765,170 +764,170 @@
 	// Init
 	game.reset();
 	tryLoadDefault();
-})();
 
-// Extra: try File System Access API under file:// to open default md next to index
-(async function fileSystemAccessFallback(){
-	if(location.protocol!=='file:') return; // only under file
-	try{
-		// Try to fetch relative path first (already done). If small fallback active and user has the real md in same folder, show guidance toast.
-		if(sequence.length<=fallbackList.length){
-			showToast('提示：将 高考核心词汇.json 放在同目录可自动加载');
-		}
-	}catch(_){/* noop */}
-})();
-
-function triggerFallingWord() {
-	if (document.querySelector('.falling-word')) return; // Only one at a time
-
-	const word = sequence[Math.floor(Math.random() * sequence.length)].word;
-	game.state.fallingWord.word = word;
-	game.state.fallingWord.buffer = '';
-
-	const el = document.createElement('div');
-	el.className = 'falling-word mono';
-	el.textContent = word;
-	el.style.left = `${Math.random() * 90}vw`;
-	const duration = 5 + Math.random() * 5;
-	el.style.animationDuration = `${duration}s`;
-
-	fallingWordsContainer.appendChild(el);
-
-	el.addEventListener('animationend', () => {
-		el.remove();
-		if (game.state.fallingWord.word === word) {
-			game.state.fallingWord.word = null;
-			game.state.fallingWord.buffer = '';
-		}
-	});
-}
-
-function handleFallingWordInput(char) {
-	const { fallingWord } = game.state;
-	if (!fallingWord.word) return;
-
-	fallingWord.buffer += char;
-	const el = document.querySelector('.falling-word');
-
-	if (fallingWord.word.startsWith(fallingWord.buffer)) {
-		beep(1400, 20, 'sine', 0.01);
-		if (fallingWord.buffer === fallingWord.word) {
-			const reward = fallingWord.word.length * 2;
-			game.state.currency += reward;
-			showToast(`击落彩蛋！+${reward}💰`);
-			game.updateHUD();
+	function triggerFallingWord() {
+		if (document.querySelector('.falling-word')) return; // Only one at a time
+	
+		const word = sequence[Math.floor(Math.random() * sequence.length)].word;
+		game.state.fallingWord.word = word;
+		game.state.fallingWord.buffer = '';
+	
+		const el = document.createElement('div');
+		el.className = 'falling-word mono';
+		el.textContent = word;
+		el.style.left = `${Math.random() * 90}vw`;
+		const duration = 5 + Math.random() * 5;
+		el.style.animationDuration = `${duration}s`;
+	
+		fallingWordsContainer.appendChild(el);
+	
+		el.addEventListener('animationend', () => {
 			el.remove();
-			fallingWord.word = null;
-			fallingWord.buffer = '';
+			if (game.state.fallingWord.word === word) {
+				game.state.fallingWord.word = null;
+				game.state.fallingWord.buffer = '';
+			}
+		});
+	}
+	
+	function handleFallingWordInput(char) {
+		const { fallingWord } = game.state;
+		if (!fallingWord.word) return;
+	
+		fallingWord.buffer += char;
+		const el = document.querySelector('.falling-word');
+	
+		if (fallingWord.word.startsWith(fallingWord.buffer)) {
+			beep(1400, 20, 'sine', 0.01);
+			if (fallingWord.buffer === fallingWord.word) {
+				const reward = fallingWord.word.length * 2;
+				game.state.currency += reward;
+				showToast(`击落彩蛋！+${reward}💰`);
+				game.updateHUD();
+				el.remove();
+				fallingWord.word = null;
+				fallingWord.buffer = '';
+			}
+		} else {
+			beep(200, 90, 'sawtooth', 0.025);
+			fallingWord.buffer = ''; // reset buffer on mistake
 		}
-	} else {
-		beep(200, 90, 'sawtooth', 0.025);
-		fallingWord.buffer = ''; // reset buffer on mistake
 	}
-}
-
-function updateTimer() {
-	if (!game.state.running) return;
-	const elapsed = Math.floor((performance.now() - game.state.startedAt) / 1000);
-	const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
-	const seconds = String(elapsed % 60).padStart(2, '0');
-	timerEl.textContent = `${minutes}:${seconds}`;
-}
-
-setInterval(() => {
-	if (game.state.running && Math.random() < 0.15) { // 15% chance every second
-		triggerFallingWord();
+	
+	function updateTimer() {
+		if (!game.state.running) return;
+		const elapsed = Math.floor((performance.now() - game.state.startedAt) / 1000);
+		const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+		const seconds = String(elapsed % 60).padStart(2, '0');
+		timerEl.textContent = `${minutes}:${seconds}`;
 	}
-}, 1000);
-
-function openBlackMarket() {
-	const blackMarketItems = [
-		{ n: '古代护符', d: '永久增加10%货币获取', cost: 1000, effect: () => { game.state.upgrades.ancientAmulet = true; } },
-		{ n: '恶魔契约', d: '立即获得500货币，但下一个boss血量翻倍', cost: 0, effect: () => { game.state.currency += 500; game.state.upgrades.demonContract = true; } },
-		{ n: '遗忘之尘', d: '移除一个诅咒', cost: 300, effect: () => { /* to be implemented */ } },
-	];
-
-	const mask = document.createElement('div');
-	mask.className = 'overlay';
-	mask.innerHTML = `
-		<div class="panel">
-			<h2>黑市</h2>
-			<p>一位蒙面人向你兜售一些稀有的商品...</p>
-			<div class="shop-items">
-				${blackMarketItems.map(p=>`
-					<button class="btn shop-item" data-n="${p.n}" data-cost="${p.cost}" ${game.state.currency < p.cost ? 'disabled' : ''}>
-						<strong>${p.n}</strong>
-						<span class="cost">${p.cost} 💰</span>
-						<br>
-						<span class="desc">${p.d}</span>
-					</button>
-				`).join('')}
+	
+	setInterval(() => {
+		if (game.state.running && Math.random() < 0.05) { // 5% chance every second
+			triggerFallingWord();
+		}
+	}, 1000);
+	
+	function openBlackMarket() {
+		const blackMarketItems = [
+			{ n: '古代护符', d: '永久增加10%货币获取', cost: 1000, effect: () => { game.state.upgrades.ancientAmulet = true; } },
+			{ n: '恶魔契约', d: '立即获得500货币，但下一个boss血量翻倍', cost: 0, effect: () => { game.state.currency += 500; game.state.upgrades.demonContract = true; } },
+			{ n: '遗忘之尘', d: '移除一个诅咒', cost: 300, effect: () => { /* to be implemented */ } },
+		];
+	
+		const mask = document.createElement('div');
+		mask.className = 'overlay';
+		mask.innerHTML = `
+			<div class="panel">
+				<h2>黑市</h2>
+				<p>一位蒙面人向你兜售一些稀有的商品...</p>
+				<div class="shop-items">
+					${blackMarketItems.map(p=>`
+						<button class="btn shop-item" data-n="${p.n}" data-cost="${p.cost}" ${game.state.currency < p.cost ? 'disabled' : ''}>
+							<strong>${p.n}</strong>
+							<span class="cost">${p.cost} 💰</span>
+							<br>
+							<span class="desc">${p.d}</span>
+						</button>
+					`).join('')}
+				</div>
+				<button id="closeBlackMarket" class="btn">离开</button>
 			</div>
-			<button id="closeBlackMarket" class="btn">离开</button>
-		</div>
-	`;
-	document.body.appendChild(mask);
-
-	mask.querySelectorAll('.shop-item').forEach(b => b.addEventListener('click', () => {
-		const name = b.getAttribute('data-n');
-		const item = blackMarketItems.find(i => i.n === name);
-		if (item && game.state.currency >= item.cost) {
-			game.state.currency -= item.cost;
-			item.effect();
-			showToast(`购买了 ${item.n}`);
+		`;
+		document.body.appendChild(mask);
+	
+		mask.querySelectorAll('.shop-item').forEach(b => b.addEventListener('click', () => {
+			const name = b.getAttribute('data-n');
+			const item = blackMarketItems.find(i => i.n === name);
+			if (item && game.state.currency >= item.cost) {
+				game.state.currency -= item.cost;
+				item.effect();
+				showToast(`购买了 ${item.n}`);
+				mask.remove();
+			}
+		}));
+	
+		mask.querySelector('#closeBlackMarket').addEventListener('click', () => {
 			mask.remove();
-		}
-	}));
-
-	mask.querySelector('#closeBlackMarket').addEventListener('click', () => {
-		mask.remove();
-	});
-}
-
-function openBank() {
-	const mask = document.createElement('div');
-	mask.className = 'overlay';
-	mask.innerHTML = `
-		<div class="panel">
-			<h2>银行</h2>
-			<p>当前现金: ${game.state.currency} | 银行存款: ${game.state.bank.balance} | 利率: ${game.state.bank.interestRate * 100}% / 100 words</p>
-			<input type="number" id="bankAmount" placeholder="金额" />
-			<button id="depositBtn" class="btn">存款</button>
-			<button id="withdrawBtn" class="btn">取款</button>
-			<button id="closeBankBtn" class="btn">关闭</button>
-		</div>
-	`;
-	document.body.appendChild(mask);
-
-	mask.querySelector('#depositBtn').addEventListener('click', () => {
-		const amount = parseInt(document.getElementById('bankAmount').value);
-		if (amount > 0 && game.state.currency >= amount) {
-			game.state.currency -= amount;
-			game.state.bank.balance += amount;
-			openBank(); // Refresh
-			mask.remove();
-		}
-	});
-
-	mask.querySelector('#withdrawBtn').addEventListener('click', () => {
-		const amount = parseInt(document.getElementById('bankAmount').value);
-		if (amount > 0 && game.state.bank.balance >= amount) {
-			game.state.bank.balance -= amount;
-			game.state.currency += amount;
-			openBank(); // Refresh
-			mask.remove();
-		}
-	});
-
-	mask.querySelector('#closeBankBtn').addEventListener('click', () => {
-		mask.remove();
-	});
-}
-
-function handleBankInterest() {
-	if (game.state.index > 0 && game.state.index % 100 === 0) {
-		const interest = Math.floor(game.state.bank.balance * game.state.bank.interestRate);
-		game.state.bank.balance += interest;
-		showToast(`获得银行利息: ${interest}💰`);
+		});
 	}
-}
+	
+	function openBank() {
+		const mask = document.createElement('div');
+		mask.className = 'overlay';
+		mask.innerHTML = `
+			<div class="panel">
+				<h2>银行</h2>
+				<p>当前现金: ${game.state.currency} | 银行存款: ${game.state.bank.balance} | 利率: ${game.state.bank.interestRate * 100}% / 100 words</p>
+				<input type="number" id="bankAmount" placeholder="金额" />
+				<button id="depositBtn" class="btn">存款</button>
+				<button id="withdrawBtn" class="btn">取款</button>
+				<button id="closeBankBtn" class="btn">关闭</button>
+			</div>
+		`;
+		document.body.appendChild(mask);
+	
+		mask.querySelector('#depositBtn').addEventListener('click', () => {
+			const amount = parseInt(document.getElementById('bankAmount').value);
+			if (amount > 0 && game.state.currency >= amount) {
+				game.state.currency -= amount;
+				game.state.bank.balance += amount;
+				openBank(); // Refresh
+				mask.remove();
+			}
+		});
+	
+		mask.querySelector('#withdrawBtn').addEventListener('click', () => {
+			const amount = parseInt(document.getElementById('bankAmount').value);
+			if (amount > 0 && game.state.bank.balance >= amount) {
+				game.state.bank.balance -= amount;
+				game.state.currency += amount;
+				openBank(); // Refresh
+				mask.remove();
+			}
+		});
+	
+		mask.querySelector('#closeBankBtn').addEventListener('click', () => {
+			mask.remove();
+		});
+	}
+	
+	function handleBankInterest() {
+		if (game.state.index > 0 && game.state.index % 100 === 0) {
+			const interest = Math.floor(game.state.bank.balance * game.state.bank.interestRate);
+			game.state.bank.balance += interest;
+			showToast(`获得银行利息: ${interest}💰`);
+		}
+	}
+
+	// Extra: try File System Access API under file:// to open default md next to index
+	(async function fileSystemAccessFallback(){
+		if(location.protocol!=='file:') return; // only under file
+		try{
+			// Try to fetch relative path first (already done). If small fallback active and user has the real md in same folder, show guidance toast.
+			if(sequence.length<=fallbackList.length){
+				showToast('提示：将 高考核心词汇.json 放在同目录可自动加载');
+			}
+		}catch(_){/* noop */}
+	})();
+})();
