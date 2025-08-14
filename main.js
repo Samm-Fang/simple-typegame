@@ -5,11 +5,13 @@
 	// DOM
 	const startBtn = document.getElementById('startBtn');
 	const resetBtn = document.getElementById('resetBtn');
+	const bankBtn = document.getElementById('bankBtn');
 	const progressEl = document.getElementById('progress');
 	const wpmEl = document.getElementById('wpm');
 	const accuracyEl = document.getElementById('accuracy');
 	const streakEl = document.getElementById('streak');
 	const currencyEl = document.getElementById('currency');
+	const timerEl = document.getElementById('timer');
 	const wordSourceStatus = document.getElementById('wordSourceStatus');
 	const mdInput = document.getElementById('mdFile');
 	const mdDropZone = document.getElementById('mdDropZone');
@@ -325,9 +327,9 @@
 
 	// Game core (unchanged except calling buildDial)
 	const game=(function(){
-		const state={ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,autoCompletePro:false,lenientCase:false,mistakeShield:0,mistakeShieldPro:false,hintAlways:false,hintCorrection:false,bonusCombo:false,bonusComboPro:false,slowMotion:false,slowMotionPro:false,doubleVision:false,xrayVision:false,wordSkip:false,freeSkip:false,spellCorrection:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''} };
-		function reset(){ Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''} }); overlay.style.display='flex'; resetBtn.disabled=sequence.length===0; startBtn.disabled=sequence.length===0; currentBufferEl.textContent=''; updateAutocomplete(); }
-		function start(){ if(sequence.length===0) {showToast('请导入词库'); return;} state.running=true; state.startedAt=now(); overlay.style.display='none'; resetBtn.disabled=false; startBtn.disabled=true; hiddenInput.focus(); try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(_){} buildDial(); updateHUD(); }
+		const state={ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,autoCompletePro:false,lenientCase:false,mistakeShield:0,mistakeShieldPro:false,hintAlways:false,hintCorrection:false,bonusCombo:false,bonusComboPro:false,slowMotion:false,slowMotionPro:false,doubleVision:false,xrayVision:false,wordSkip:false,freeSkip:false,spellCorrection:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} };
+		function reset(){ clearInterval(state.timerInterval); Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} }); overlay.style.display='flex'; resetBtn.disabled=sequence.length===0; startBtn.disabled=sequence.length===0; currentBufferEl.textContent=''; updateAutocomplete(); timerEl.textContent = '00:00'; }
+		function start(){ if(sequence.length===0) {showToast('请导入词库'); return;} state.running=true; state.startedAt=now(); overlay.style.display='none'; resetBtn.disabled=false; startBtn.disabled=true; hiddenInput.focus(); try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(_){} buildDial(); updateHUD(); state.timerInterval = setInterval(updateTimer, 1000); }
 		function item(){
 			const originalItem = sequence[state.index]||null;
 			if (!originalItem) return null;
@@ -375,7 +377,7 @@
 					state.streak=Math.min(999,state.streak+1);
 					if (state.eventActive && state.eventActive.name === "双倍奖励" && state.eventActive.duration > 0) { state.streak++; }
 					state.maxStreak=Math.max(state.maxStreak,state.streak);
-					let currencyGain = cur.word.length;
+					let currencyGain = cur.word.length * (1 + state.streak * 0.01); // Combo bonus
 					if (game.state.upgrades.curseOfPoverty) {
 						currencyGain = Math.floor(currencyGain * 0.8);
 					}
@@ -383,7 +385,7 @@
 						currencyGain *= 2;
 						showToast('贪婪！货币双倍！');
 					}
-					state.currency += currencyGain; // 获得货币
+					state.currency += Math.floor(currencyGain); // 获得货币
 					
 					// 护盾获取逻辑
 					if(game.state.upgrades.mistakeShield && state.streak > 0 && state.streak % (state.upgrades.mistakeShieldPro ? 10 : 20) === 0) {
@@ -415,6 +417,7 @@
 					}
 					if(state.index % 50 === 0 && state.index > 0) { sequence.splice(state.index, 0, bossWords[Math.floor(Math.random() * bossWords.length)]); state.isBoss = true; showToast('头目出现！'); }
 					if(state.index % 10 === 0) triggerRandomEvent();
+					handleBankInterest();
 					if(state.index===state.nextUp){ state.phase = Math.floor(state.phase * 1.2); state.nextUp+=state.phase; chooseUpgrade(); }
 					if(state.index>=sequence.length){ finish(); }
 				} else {
@@ -604,19 +607,6 @@
 				<div class="shop-section">
 					<h3>购买天赋</h3>
 					<div class="shop-items">
-						${availableUpgrades.map(p=>`
-							<button class="btn shop-item" data-k="${p.k}" data-cost="${p.cost}" ${game.state.currency < p.cost ? 'disabled' : ''}>
-								<strong>${p.n} <span class="tier">(${p.tier})</span></strong>
-								<span class="cost">${p.cost} 💰</span>
-								<br>
-								<span class="desc">${p.d}</span>
-							</button>
-						`).join('')}
-					</div>
-				</div>
-				<div class="shop-section">
-					<h3>购买天赋</h3>
-					<div class="shop-items">
 						${picks.map(p=>`
 							<button class="btn shop-item" data-k="${p.k}" data-cost="${p.cost}" ${game.state.currency < p.cost ? 'disabled' : ''}>
 								<strong>${p.n} <span class="tier">(${p.tier})</span></strong>
@@ -743,6 +733,7 @@
 	// Button listeners
 	startBtn.addEventListener('click', ()=> game.start());
 	resetBtn.addEventListener('click', ()=> game.reset());
+	bankBtn.addEventListener('click', openBank);
 
 	// Init
 	game.reset();
@@ -809,8 +800,64 @@ function handleFallingWordInput(char) {
 	}
 }
 
+function updateTimer() {
+	if (!game.state.running) return;
+	const elapsed = Math.floor((performance.now() - game.state.startedAt) / 1000);
+	const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+	const seconds = String(elapsed % 60).padStart(2, '0');
+	timerEl.textContent = `${minutes}:${seconds}`;
+}
+
 setInterval(() => {
-	if (game.state.running && Math.random() < 0.05) { // 5% chance every second
+	if (game.state.running && Math.random() < 0.15) { // 15% chance every second
 		triggerFallingWord();
 	}
 }, 1000);
+
+function openBank() {
+	const mask = document.createElement('div');
+	mask.className = 'overlay';
+	mask.innerHTML = `
+		<div class="panel">
+			<h2>银行</h2>
+			<p>当前现金: ${game.state.currency} | 银行存款: ${game.state.bank.balance} | 利率: ${game.state.bank.interestRate * 100}% / 100 words</p>
+			<input type="number" id="bankAmount" placeholder="金额" />
+			<button id="depositBtn" class="btn">存款</button>
+			<button id="withdrawBtn" class="btn">取款</button>
+			<button id="closeBankBtn" class="btn">关闭</button>
+		</div>
+	`;
+	document.body.appendChild(mask);
+
+	mask.querySelector('#depositBtn').addEventListener('click', () => {
+		const amount = parseInt(document.getElementById('bankAmount').value);
+		if (amount > 0 && game.state.currency >= amount) {
+			game.state.currency -= amount;
+			game.state.bank.balance += amount;
+			openBank(); // Refresh
+			mask.remove();
+		}
+	});
+
+	mask.querySelector('#withdrawBtn').addEventListener('click', () => {
+		const amount = parseInt(document.getElementById('bankAmount').value);
+		if (amount > 0 && game.state.bank.balance >= amount) {
+			game.state.bank.balance -= amount;
+			game.state.currency += amount;
+			openBank(); // Refresh
+			mask.remove();
+		}
+	});
+
+	mask.querySelector('#closeBankBtn').addEventListener('click', () => {
+		mask.remove();
+	});
+}
+
+function handleBankInterest() {
+	if (game.state.index > 0 && game.state.index % 100 === 0) {
+		const interest = Math.floor(game.state.bank.balance * game.state.bank.interestRate);
+		game.state.bank.balance += interest;
+		showToast(`获得银行利息: ${interest}💰`);
+	}
+}
