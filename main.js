@@ -309,6 +309,9 @@
 			// 这里需要修改 renderBuffer 中的 ok/bad/rest 的显示逻辑
 			// 暂时只显示提示，后续再实现视觉效果
 		}},
+		{ name: "黑市商人", description: "一位神秘商人出现了！", effect: () => {
+			openBlackMarket();
+		}},
 	];
 
 	function triggerRandomEvent() {
@@ -328,9 +331,21 @@
 	// Game core (unchanged except calling buildDial)
 	const game=(function(){
 		const state={ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,autoCompletePro:false,lenientCase:false,mistakeShield:0,mistakeShieldPro:false,hintAlways:false,hintCorrection:false,bonusCombo:false,bonusComboPro:false,slowMotion:false,slowMotionPro:false,doubleVision:false,xrayVision:false,wordSkip:false,freeSkip:false,spellCorrection:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} };
-		function reset(){ clearInterval(state.timerInterval); Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} }); overlay.style.display='flex'; resetBtn.disabled=sequence.length===0; startBtn.disabled=sequence.length===0; currentBufferEl.textContent=''; updateAutocomplete(); timerEl.textContent = '00:00'; }
+		function reset(){
+			if (state.timerInterval) clearInterval(state.timerInterval);
+			Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''}, timerInterval: null, bank: {balance: 0, interestRate: 0.01} });
+			overlay.style.display='flex';
+			resetBtn.disabled=sequence.length===0;
+			startBtn.disabled=sequence.length===0;
+			currentBufferEl.textContent='';
+			updateAutocomplete();
+			timerEl.textContent = '00:00';
+		}
 		function start(){ if(sequence.length===0) {showToast('请导入词库'); return;} state.running=true; state.startedAt=now(); overlay.style.display='none'; resetBtn.disabled=false; startBtn.disabled=true; hiddenInput.focus(); try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(_){} buildDial(); updateHUD(); state.timerInterval = setInterval(updateTimer, 1000); }
 		function item(){
+			if (state.isBoss) {
+				return bossWords.find(b => sequence[state.index] && b.word === sequence[state.index].word) || sequence[state.index] || null;
+			}
 			const originalItem = sequence[state.index]||null;
 			if (!originalItem) return null;
 
@@ -378,6 +393,9 @@
 					if (state.eventActive && state.eventActive.name === "双倍奖励" && state.eventActive.duration > 0) { state.streak++; }
 					state.maxStreak=Math.max(state.maxStreak,state.streak);
 					let currencyGain = cur.word.length * (1 + state.streak * 0.01); // Combo bonus
+					if (game.state.upgrades.ancientAmulet) {
+						currencyGain *= 1.1;
+					}
 					if (game.state.upgrades.curseOfPoverty) {
 						currencyGain = Math.floor(currencyGain * 0.8);
 					}
@@ -415,7 +433,16 @@
 						game.state.upgrades.mistakeShield += 1; // 获得一个护盾
 						showToast('连击爆发！获得一个失误护盾！');
 					}
-					if(state.index % 50 === 0 && state.index > 0) { sequence.splice(state.index, 0, bossWords[Math.floor(Math.random() * bossWords.length)]); state.isBoss = true; showToast('头目出现！'); }
+					if(state.index % 50 === 0 && state.index > 0) {
+						let boss = bossWords[Math.floor(Math.random() * bossWords.length)];
+						if (game.state.upgrades.demonContract) {
+							boss.word += boss.word; // Double health
+							game.state.upgrades.demonContract = false; // One time use
+						}
+						sequence.splice(state.index, 0, boss);
+						state.isBoss = true;
+						showToast('头目出现！');
+					}
 					if(state.index % 10 === 0) triggerRandomEvent();
 					handleBankInterest();
 					if(state.index===state.nextUp){ state.phase = Math.floor(state.phase * 1.2); state.nextUp+=state.phase; chooseUpgrade(); }
@@ -813,6 +840,50 @@ setInterval(() => {
 		triggerFallingWord();
 	}
 }, 1000);
+
+function openBlackMarket() {
+	const blackMarketItems = [
+		{ n: '古代护符', d: '永久增加10%货币获取', cost: 1000, effect: () => { game.state.upgrades.ancientAmulet = true; } },
+		{ n: '恶魔契约', d: '立即获得500货币，但下一个boss血量翻倍', cost: 0, effect: () => { game.state.currency += 500; game.state.upgrades.demonContract = true; } },
+		{ n: '遗忘之尘', d: '移除一个诅咒', cost: 300, effect: () => { /* to be implemented */ } },
+	];
+
+	const mask = document.createElement('div');
+	mask.className = 'overlay';
+	mask.innerHTML = `
+		<div class="panel">
+			<h2>黑市</h2>
+			<p>一位蒙面人向你兜售一些稀有的商品...</p>
+			<div class="shop-items">
+				${blackMarketItems.map(p=>`
+					<button class="btn shop-item" data-n="${p.n}" data-cost="${p.cost}" ${game.state.currency < p.cost ? 'disabled' : ''}>
+						<strong>${p.n}</strong>
+						<span class="cost">${p.cost} 💰</span>
+						<br>
+						<span class="desc">${p.d}</span>
+					</button>
+				`).join('')}
+			</div>
+			<button id="closeBlackMarket" class="btn">离开</button>
+		</div>
+	`;
+	document.body.appendChild(mask);
+
+	mask.querySelectorAll('.shop-item').forEach(b => b.addEventListener('click', () => {
+		const name = b.getAttribute('data-n');
+		const item = blackMarketItems.find(i => i.n === name);
+		if (item && game.state.currency >= item.cost) {
+			game.state.currency -= item.cost;
+			item.effect();
+			showToast(`购买了 ${item.n}`);
+			mask.remove();
+		}
+	}));
+
+	mask.querySelector('#closeBlackMarket').addEventListener('click', () => {
+		mask.remove();
+	});
+}
 
 function openBank() {
 	const mask = document.createElement('div');
