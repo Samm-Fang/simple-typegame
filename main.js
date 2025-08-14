@@ -393,7 +393,12 @@
 						game.state.upgrades.mistakeShield += 1; // 获得一个护盾
 						showToast('连击爆发！获得一个失误护盾！');
 					}
-					if(state.index % 50 === 0 && state.index > 0) { sequence.splice(state.index, 0, bossWords[Math.floor(Math.random() * bossWords.length)]); state.isBoss = true; showToast('头目出现！'); }
+					if(state.index % 50 === 0 && state.index > 0) {
+						sequence.splice(state.index, 0, bossWords[Math.floor(Math.random() * bossWords.length)]);
+						state.isBoss = true;
+						showToast('头目出现！');
+						updateDial(); // 更新 UI
+					}
 					if(state.index % 10 === 0) triggerRandomEvent();
 					if(state.index===state.nextUp){ state.phase = Math.floor(state.phase * 1.2); state.nextUp+=state.phase; chooseUpgrade(); }
 					if(state.index>=sequence.length){ finish(); }
