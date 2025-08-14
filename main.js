@@ -9,6 +9,7 @@
 	const wpmEl = document.getElementById('wpm');
 	const accuracyEl = document.getElementById('accuracy');
 	const streakEl = document.getElementById('streak');
+	const currencyEl = document.getElementById('currency');
 	const wordSourceStatus = document.getElementById('wordSourceStatus');
 	const mdInput = document.getElementById('mdFile');
 	const mdDropZone = document.getElementById('mdDropZone');
@@ -21,6 +22,7 @@
 	const focusTrans = document.getElementById('focusTrans');
 	const currentBufferEl = document.getElementById('currentBuffer');
 	const autocompleteEl = document.getElementById('autocomplete');
+	const fallingWordsContainer = document.getElementById('fallingWordsContainer');
 
 	// Basic utils
 	const now = ()=> performance.now();
@@ -312,17 +314,19 @@
 			const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
 			event.effect();
 			// 添加全屏视觉提示
-			document.body.classList.add('event-active-effect');
+			const effectEl = document.createElement('div');
+			effectEl.className = 'event-active-effect';
+			document.body.appendChild(effectEl);
 			setTimeout(() => {
-				document.body.classList.remove('event-active-effect');
-			}, 1000); // 持续1秒
+				effectEl.remove();
+			}, 1500);
 		}
 	}
 
 	// Game core (unchanged except calling buildDial)
 	const game=(function(){
-		const state={ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', upgrades:{autoComplete:false,autoCompletePro:false,lenientCase:false,mistakeShield:0,mistakeShieldPro:false,hintAlways:false,hintCorrection:false,bonusCombo:false,bonusComboPro:false,slowMotion:false,slowMotionPro:false,doubleVision:false,xrayVision:false,wordSkip:false,freeSkip:false,spellCorrection:false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false };
-		function reset(){ Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false }); overlay.style.display='flex'; resetBtn.disabled=sequence.length===0; startBtn.disabled=sequence.length===0; currentBufferEl.textContent=''; updateAutocomplete(); }
+		const state={ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,autoCompletePro:false,lenientCase:false,mistakeShield:0,mistakeShieldPro:false,hintAlways:false,hintCorrection:false,bonusCombo:false,bonusComboPro:false,slowMotion:false,slowMotionPro:false,doubleVision:false,xrayVision:false,wordSkip:false,freeSkip:false,spellCorrection:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''} };
+		function reset(){ Object.assign(state,{ running:false, startedAt:0, correct:0, total:0, streak:0, maxStreak:0, index:0, buffer:'', currency: 0, upgrades:{autoComplete:false,lenientCase:false,mistakeShield:0,hintAlways:false,bonusCombo:false,slowMotion:false,doubleVision:false,wordSkip:false, curseOfPoverty: false}, phase:15, nextUp:15, eventActive: null, autocomplete: { suggestions: [], selected: 0 }, isBoss: false, fallingWord: {word: null, buffer: ''} }); overlay.style.display='flex'; resetBtn.disabled=sequence.length===0; startBtn.disabled=sequence.length===0; currentBufferEl.textContent=''; updateAutocomplete(); }
 		function start(){ if(sequence.length===0) {showToast('请导入词库'); return;} state.running=true; state.startedAt=now(); overlay.style.display='none'; resetBtn.disabled=false; startBtn.disabled=true; hiddenInput.focus(); try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(_){} buildDial(); updateHUD(); }
 		function item(){
 			const originalItem = sequence[state.index]||null;
@@ -371,6 +375,15 @@
 					state.streak=Math.min(999,state.streak+1);
 					if (state.eventActive && state.eventActive.name === "双倍奖励" && state.eventActive.duration > 0) { state.streak++; }
 					state.maxStreak=Math.max(state.maxStreak,state.streak);
+					let currencyGain = cur.word.length;
+					if (game.state.upgrades.curseOfPoverty) {
+						currencyGain = Math.floor(currencyGain * 0.8);
+					}
+					if (game.state.upgrades.greed && Math.random() < 0.1) {
+						currencyGain *= 2;
+						showToast('贪婪！货币双倍！');
+					}
+					state.currency += currencyGain; // 获得货币
 					
 					// 护盾获取逻辑
 					if(game.state.upgrades.mistakeShield && state.streak > 0 && state.streak % (state.upgrades.mistakeShieldPro ? 10 : 20) === 0) {
@@ -378,6 +391,13 @@
 						showToast('获得一个失误护盾！');
 					}
 					
+					if (game.state.upgrades.investmentActive > 0) {
+						game.state.currency += Math.floor(cur.word.length * 0.5);
+						game.state.upgrades.investmentActive--;
+						if (game.state.upgrades.investmentActive === 0) {
+							showToast('投资结束');
+						}
+					}
 					if(state.eventActive) { state.eventActive.duration--; if(state.eventActive.duration <= 0) state.eventActive = null; }
 					if(state.isBoss) { showToast('头目已被击败！获得一次额外升级！'); chooseUpgrade(); state.isBoss = false; }
 					state.index++; state.buffer=''; updateAutocomplete();
@@ -458,7 +478,13 @@
 							showToast('护盾抵消了一次失误！');
 							state.buffer = state.buffer.slice(0, -1); // 护盾抵消后，移除错误的字符
 						} else {
-							state.streak=0;
+							if (state.upgrades.insurance && state.currency >= 25 && state.streak > 10) {
+								state.currency -= 25;
+								state.streak = Math.floor(state.streak / 2);
+								showToast(`保险生效！花费25货币保留了${state.streak}连击！`);
+							} else {
+								state.streak=0;
+							}
 							state.buffer=''; // 清空 buffer
 						}
 						if(state.upgrades.slowMotion){ document.body.style.transition='filter .1s'; document.body.style.filter='blur(2px)'; setTimeout(()=>document.body.style.filter='none', state.upgrades.slowMotionPro ? 4000 : 2000); }
@@ -484,7 +510,7 @@
 			updateHUD();
 		}
 		function finish(){ state.running=false; startBtn.disabled=false; overlay.style.display='flex'; showToast('完成全部词条'); }
-		function updateHUD(){ progressEl.textContent=`${Math.min(state.index,sequence.length)}/${sequence.length}`; const minutes=Math.max(0.001,(now()-state.startedAt)/60000); const wpm=Math.round((state.correct/5)/minutes); wpmEl.textContent=String(isFinite(wpm)?wpm:0); const acc=state.total===0?100:Math.round(100*state.correct/Math.max(1,state.total)); accuracyEl.textContent=acc+'%'; streakEl.textContent=state.streak+'x'; if(game.state.upgrades.mistakeShield>0) streakEl.textContent += ` (${game.state.upgrades.mistakeShield}🛡️)`; }
+		function updateHUD(){ progressEl.textContent=`${Math.min(state.index,sequence.length)}/${sequence.length}`; const minutes=Math.max(0.001,(now()-state.startedAt)/60000); const wpm=Math.round((state.correct/5)/minutes); wpmEl.textContent=String(isFinite(wpm)?wpm:0); const acc=state.total===0?100:Math.round(100*state.correct/Math.max(1,state.total)); accuracyEl.textContent=acc+'%'; streakEl.textContent=state.streak+'x'; if(game.state.upgrades.mistakeShield>0) streakEl.textContent += ` (${game.state.upgrades.mistakeShield}🛡️)`; currencyEl.textContent = state.currency; }
 		return { state, reset, start, item, type, backspace, autocomplete, skip, updateHUD };
 	})();
 
@@ -522,41 +548,157 @@
 	function chooseUpgrade(){
 		const pool=[
 			// S tier
-			{k:'autoComplete',n:'自动补全',d:'按 Tab 键可立即完成当前单词的输入',tier:'S'},
-			{k:'mistakeShield',n:'失误护盾',d:'每20个单词获得一个护盾，能抵消一次输入错误',tier:'S'},
+			{k:'autoComplete',n:'自动补全',d:'按 Tab 键可立即完成当前单词的输入',tier:'S', cost: 800},
+			{k:'mistakeShield',n:'失误护盾',d:'每20个单词获得一个护盾，能抵消一次输入错误',tier:'S', cost: 700},
 			// A tier
-			{k:'bonusCombo',n:'连击奖励',d:'连击数越高，打字音效的音调也越高',tier:'A'},
-			{k:'lenientCase',n:'格式豁免',d:'输入时忽略单词的大小写、连字符和下划线',tier:'A'},
-			{k:'autoCompletePro',n:'高级补全',d:'自动补全不再刻意将当前单词排在最后',tier:'A', requires:'autoComplete'},
-			{k:'mistakeShieldPro',n:'强化护盾',d:'护盾获得频率提高，且一个护盾可抵消多次错误',tier:'A', requires:'mistakeShield'},
+			{k:'bonusCombo',n:'连击奖励',d:'连击数越高，打字音效的音调也越高',tier:'A', cost: 500},
+			{k:'lenientCase',n:'格式豁免',d:'输入时忽略单词的大小写、连字符和下划线',tier:'A', cost: 600},
+			{k:'autoCompletePro',n:'高级补全',d:'自动补全不再刻意将当前单词排在最后',tier:'A', requires:'autoComplete', cost: 400},
+			{k:'mistakeShieldPro',n:'强化护盾',d:'护盾获得频率提高，且一个护盾可抵消多次错误',tier:'A', requires:'mistakeShield', cost: 550},
 			// B tier
-			{k:'hintAlways',n:'永久提示',d:'输入过程中始终显示单词的未输入部分',tier:'B'},
-			{k:'hintCorrection',n:'纠错提示',d:'输入错误后无需删除，根据提示继续输入即可',tier:'B', requires:'hintAlways'},
-			{k:'slowMotion',n:'子弹时间',d:'输入错误时，游戏速度减慢2秒',tier:'B'},
-			{k:'bonusComboPro',n:'连击爆发',d:'达到一定连击数时获得额外奖励',tier:'B', requires:'bonusCombo'},
-			{k:'spellCorrection',n:'拼写修正',d:'自动修正一些常见的拼写小错误',tier:'B', requires:'lenientCase'},
+			{k:'hintAlways',n:'永久提示',d:'输入过程中始终显示单词的未输入部分',tier:'B', cost: 250},
+			{k:'hintCorrection',n:'纠错提示',d:'输入错误后无需删除，根据提示继续输入即可',tier:'B', requires:'hintAlways', cost: 350},
+			{k:'slowMotion',n:'子弹时间',d:'输入错误时，游戏速度减慢2秒',tier:'B', cost: 200},
+			{k:'bonusComboPro',n:'连击爆发',d:'达到一定连击数时获得额外奖励',tier:'B', requires:'bonusCombo', cost: 450},
+			{k:'spellCorrection',n:'拼写修正',d:'自动修正一些常见的拼写小错误',tier:'B', requires:'lenientCase', cost: 300},
 			// C tier
-			{k:'doubleVision',n:'双倍视野',d:'单词列表的可见范围扩大一倍',tier:'C'},
-			{k:'xrayVision',n:'透视',d:'能看到更远的单词的词义',tier:'C', requires:'doubleVision'},
-			{k:'wordSkip',n:'跳过单词',d:'按 Esc 键可以跳过当前不想输入的单词',tier:'C'},
-			{k:'freeSkip',n:'自由跳过',d:'跳过单词不再计入失误或影响连击',tier:'C', requires:'wordSkip'},
-			{k:'slowMotionPro',n:'持久子弹',d:'子弹时间持续更长时间',tier:'C', requires:'slowMotion'},
+			{k:'doubleVision',n:'双倍视野',d:'单词列表的可见范围扩大一倍',tier:'C', cost: 100},
+			{k:'xrayVision',n:'透视',d:'能看到更远的单词的词义',tier:'C', requires:'doubleVision', cost: 150},
+			{k:'wordSkip',n:'跳过单词',d:'按 Esc 键可以跳过当前不想输入的单词',tier:'C', cost: 120},
+			{k:'freeSkip',n:'自由跳过',d:'跳过单词不再计入失误或影响连击',tier:'C', requires:'wordSkip', cost: 180},
+			{k:'slowMotionPro',n:'持久子弹',d:'子弹时间持续更长时间',tier:'C', requires:'slowMotion', cost: 250},
+			// Currency related upgrades
+			{k:'greed',n:'贪婪',d:'每次获得货币时，有10%概率获得双倍',tier:'A', cost: 750},
+			{k:'investment',n:'投资',d:'花费100货币，在接下来20个单词中获得50%额外货币',tier:'B', cost: 100},
+			{k:'insurance',n:'保险',d:'连击中断时，可花费50货币保留一半连击数',tier:'B', cost: 200},
+			{k:'reroll',n:'刷新商店',d:'花费20货币刷新商店（包括挑战）',tier:'C', cost: 20},
 		];
-		const picks = pool.filter(p=>!game.state.upgrades[p.k]).sort(()=>Math.random()-0.5).slice(0,3);
-		if(picks.length === 0) return;
+
+		const negativeEffects = [
+			{ k: 'curseOfSlowness', n: '缓慢诅咒', d: '所有单词长度永久增加2', effect: () => { sequence.forEach(item => item.word += '  '); }, currency: 200 },
+			{ k: 'curseOfPoverty', n: '贫穷诅咒', d: '获取货币效率永久降低20%', effect: () => { game.state.upgrades.curseOfPoverty = true; }, currency: 300 },
+			{ k: 'curseOfBlindness', n: '致盲诅咒', d: '永久性模糊视线', effect: () => { document.body.classList.add('permanent-blur'); }, currency: 400 },
+			{ k: 'curseOfFragility', n: '脆弱诅咒', d: '失误护盾上限变为1', effect: () => { game.state.upgrades.mistakeShield = Math.min(game.state.upgrades.mistakeShield, 1); }, currency: 250 },
+			{ k: 'curseOfTime', n: '时间诅咒', d: '游戏速度加快10%，持续30秒', effect: () => { document.body.style.setProperty('--game-speed', '0.9'); setTimeout(() => document.body.style.removeProperty('--game-speed'), 30000); }, currency: 150 },
+		];
+
+		const availableUpgrades = pool.filter(p => !game.state.upgrades[p.k] && (!p.requires || game.state.upgrades[p.requires]));
+		
+		const tiers = ['S', 'A', 'B', 'C'];
+		const picks = [];
+		tiers.forEach(tier => {
+			const tierUpgrades = availableUpgrades.filter(u => u.tier === tier);
+			if (tierUpgrades.length > 0) {
+				picks.push(tierUpgrades[Math.floor(Math.random() * tierUpgrades.length)]);
+			}
+		});
+
+		const randomCurse = negativeEffects[Math.floor(Math.random() * negativeEffects.length)];
 
 		const mask=document.createElement('div');
 		mask.className='overlay';
-		mask.innerHTML=`<div class="panel"><h2>选择升级</h2><div style="display:flex;gap:12px;flex-wrap:wrap">${picks.map(p=>`<button class="btn" data-k=${p.k}><strong>${p.n} <span style="font-size:12px;color:var(--primary)">(${p.tier})</span></strong><br><span style="color:#9fb2cc">${p.d}</span></button>`).join('')}</div></div>`;
+		mask.innerHTML=`
+			<div class="panel">
+				<h2>天赋商店</h2>
+				<p>当前货币: <span id="shopCurrency">${game.state.currency}</span></p>
+				<div class="shop-section">
+					<h3>购买天赋</h3>
+					<div class="shop-items">
+						${availableUpgrades.map(p=>`
+							<button class="btn shop-item" data-k="${p.k}" data-cost="${p.cost}" ${game.state.currency < p.cost ? 'disabled' : ''}>
+								<strong>${p.n} <span class="tier">(${p.tier})</span></strong>
+								<span class="cost">${p.cost} 💰</span>
+								<br>
+								<span class="desc">${p.d}</span>
+							</button>
+						`).join('')}
+					</div>
+				</div>
+				<div class="shop-section">
+					<h3>购买天赋</h3>
+					<div class="shop-items">
+						${picks.map(p=>`
+							<button class="btn shop-item" data-k="${p.k}" data-cost="${p.cost}" ${game.state.currency < p.cost ? 'disabled' : ''}>
+								<strong>${p.n} <span class="tier">(${p.tier})</span></strong>
+								<span class="cost">${p.cost} 💰</span>
+								<br>
+								<span class="desc">${p.d}</span>
+							</button>
+						`).join('')}
+					</div>
+				</div>
+				<div class="shop-section">
+					<h3>接受挑战 (获得货币)</h3>
+					<div class="shop-items">
+						<button class="btn shop-item negative" data-k="${randomCurse.k}" data-currency="${randomCurse.currency}">
+							<strong>${randomCurse.n}</strong>
+							<span class="reward">+${randomCurse.currency} 💰</span>
+							<br>
+							<span class="desc">${randomCurse.d}</span>
+						</button>
+					</div>
+				</div>
+				<button id="closeShop" class="btn">关闭</button>
+			</div>`;
 		document.body.appendChild(mask);
-		mask.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-			const k=b.getAttribute('data-k');
-			game.state.upgrades[k]=true;
-			showToast('获得：'+picks.find(x=>x.k===k).n);
+
+		mask.querySelector('#closeShop').addEventListener('click', () => {
 			mask.remove();
 			hiddenInput.focus();
-			renderBuffer();
-			if(k==='doubleVision') buildDial(); // 重建以应用更广的视野
+		});
+
+		mask.querySelectorAll('.shop-item').forEach(b=>b.addEventListener('click',()=>{
+			if (b.classList.contains('negative')) {
+				const k = b.getAttribute('data-k');
+				const effect = negativeEffects.find(x => x.k === k);
+				if (effect) {
+					effect.effect();
+					game.state.currency += effect.currency;
+					showToast(`接受挑战：${effect.n}，获得 ${effect.currency} 货币`);
+					b.disabled = true; // 一个挑战只能接受一次
+					document.getElementById('shopCurrency').textContent = game.state.currency;
+					game.updateHUD();
+				}
+			} else {
+				const k=b.getAttribute('data-k');
+				const cost = parseInt(b.getAttribute('data-cost'));
+				if (k === 'reroll') {
+					if (game.state.currency >= cost) {
+						game.state.currency -= cost;
+						mask.remove();
+						chooseUpgrade();
+					} else {
+						showToast('货币不足');
+					}
+					return;
+				}
+				if (k === 'investment') {
+					if (game.state.currency >= cost) {
+						game.state.currency -= cost;
+						game.state.upgrades.investmentActive = 20; // 持续20个单词
+						showToast('投资成功！');
+						b.disabled = true;
+						b.style.opacity = '0.5';
+						document.getElementById('shopCurrency').textContent = game.state.currency;
+						game.updateHUD();
+					} else {
+						showToast('货币不足');
+					}
+					return;
+				}
+				if (game.state.currency >= cost) {
+					game.state.currency -= cost;
+					game.state.upgrades[k]=true;
+					showToast('购买成功：'+pool.find(x=>x.k===k).n);
+					b.disabled = true;
+					b.style.opacity = '0.5';
+					document.getElementById('shopCurrency').textContent = game.state.currency;
+					game.updateHUD();
+					if(k==='doubleVision') buildDial();
+				} else {
+					showToast('货币不足');
+				}
+			}
 		}));
 	}
 	// File & DnD
@@ -590,6 +732,11 @@
 			e.preventDefault();
 			return;
 		}
+		if(e.shiftKey && e.key.length===1 && /[a-zA-Z\-']/.test(e.key)) {
+			handleFallingWordInput(e.key);
+			e.preventDefault();
+			return;
+		}
 		if(e.key.length===1 && /[a-zA-Z\-']/.test(e.key)){ game.type(e.key); e.preventDefault(); }
 	},{passive:false});
 
@@ -602,13 +749,68 @@
 	tryLoadDefault();
 })();
 
-	// Extra: try File System Access API under file:// to open default md next to index
-	(async function fileSystemAccessFallback(){
-		if(location.protocol!=='file:') return; // only under file
-		try{
-			// Try to fetch relative path first (already done). If small fallback active and user has the real md in same folder, show guidance toast.
-			if(sequence.length<=fallbackList.length){
-				showToast('提示：将 高考核心词汇.json 放在同目录可自动加载');
-			}
-		}catch(_){/* noop */}
-	})();
+// Extra: try File System Access API under file:// to open default md next to index
+(async function fileSystemAccessFallback(){
+	if(location.protocol!=='file:') return; // only under file
+	try{
+		// Try to fetch relative path first (already done). If small fallback active and user has the real md in same folder, show guidance toast.
+		if(sequence.length<=fallbackList.length){
+			showToast('提示：将 高考核心词汇.json 放在同目录可自动加载');
+		}
+	}catch(_){/* noop */}
+})();
+
+function triggerFallingWord() {
+	if (document.querySelector('.falling-word')) return; // Only one at a time
+
+	const word = sequence[Math.floor(Math.random() * sequence.length)].word;
+	game.state.fallingWord.word = word;
+	game.state.fallingWord.buffer = '';
+
+	const el = document.createElement('div');
+	el.className = 'falling-word mono';
+	el.textContent = word;
+	el.style.left = `${Math.random() * 90}vw`;
+	const duration = 5 + Math.random() * 5;
+	el.style.animationDuration = `${duration}s`;
+
+	fallingWordsContainer.appendChild(el);
+
+	el.addEventListener('animationend', () => {
+		el.remove();
+		if (game.state.fallingWord.word === word) {
+			game.state.fallingWord.word = null;
+			game.state.fallingWord.buffer = '';
+		}
+	});
+}
+
+function handleFallingWordInput(char) {
+	const { fallingWord } = game.state;
+	if (!fallingWord.word) return;
+
+	fallingWord.buffer += char;
+	const el = document.querySelector('.falling-word');
+
+	if (fallingWord.word.startsWith(fallingWord.buffer)) {
+		beep(1400, 20, 'sine', 0.01);
+		if (fallingWord.buffer === fallingWord.word) {
+			const reward = fallingWord.word.length * 2;
+			game.state.currency += reward;
+			showToast(`击落彩蛋！+${reward}💰`);
+			game.updateHUD();
+			el.remove();
+			fallingWord.word = null;
+			fallingWord.buffer = '';
+		}
+	} else {
+		beep(200, 90, 'sawtooth', 0.025);
+		fallingWord.buffer = ''; // reset buffer on mistake
+	}
+}
+
+setInterval(() => {
+	if (game.state.running && Math.random() < 0.05) { // 5% chance every second
+		triggerFallingWord();
+	}
+}, 1000);
